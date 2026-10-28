@@ -1,0 +1,6 @@
+{
+  "name": "Apex Horizon: Open World Driving Simulator",
+  "description": "Open-world 3D driving simulator with realistic vehicle physics, deep customization, dynamic day-night cycle, weather effects, damage mechanics, gamepad support, and offline play.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

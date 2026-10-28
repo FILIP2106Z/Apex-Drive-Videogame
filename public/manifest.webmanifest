@@ -1,0 +1,17 @@
+{
+  "name": "Apex Horizon: Open World Driving Simulator",
+  "short_name": "Apex Horizon",
+  "description": "Open-world 3D driving simulator with realistic physics, custom tuning, and dynamic weather.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape-primary",
+  "background_color": "#090a0f",
+  "theme_color": "#090a0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%230f1422'/%3E%3Cpath d='M96 352h320l-48-128H144z' fill='%23ff3366'/%3E%3Ccircle cx='160' cy='360' r='48' fill='%23111' stroke='%23fff' stroke-width='16'/%3E%3Ccircle cx='352' cy='360' r='48' fill='%23111' stroke='%23fff' stroke-width='16'/%3E%3Cpath d='M160 224l32-64h128l32 64z' fill='%2300f0ff' opacity='0.7'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
