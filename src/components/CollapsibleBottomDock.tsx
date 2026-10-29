@@ -29,6 +29,7 @@ interface CollapsibleBottomDockProps {
   onUpdateGraphics: (updated: GraphicsSettings) => void;
   onUpdateControls: (updated: ControlBindings) => void;
   onSelectVehicle: (id: VehicleId) => void;
+  onOpenGitHubReleases?: () => void;
   isOpen: boolean;
   onToggleOpen: () => void;
 }
@@ -43,6 +44,7 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
   onUpdateGraphics,
   onUpdateControls,
   onSelectVehicle,
+  onOpenGitHubReleases,
   isOpen,
   onToggleOpen,
 }) => {
@@ -886,16 +888,26 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                       Automated release pipeline for Android, iOS, Windows, macOS, and Linux (AppImage & Flatpak).
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(GITHUB_WORKFLOW_YML);
-                      setCopiedYaml(true);
-                      setTimeout(() => setCopiedYaml(false), 3000);
-                    }}
-                    className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition-colors"
-                  >
-                    {copiedYaml ? 'Copied YAML!' : 'Copy Workflow YAML'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {onOpenGitHubReleases && (
+                      <button
+                        onClick={onOpenGitHubReleases}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition-colors shadow-md flex items-center gap-1.5"
+                      >
+                        <span>1-Click Install Hub (v1.0.0)</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(GITHUB_WORKFLOW_YML);
+                        setCopiedYaml(true);
+                        setTimeout(() => setCopiedYaml(false), 3000);
+                      }}
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition-colors"
+                    >
+                      {copiedYaml ? 'Copied YAML!' : 'Copy Workflow YAML'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">

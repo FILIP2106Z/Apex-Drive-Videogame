@@ -1,0 +1,65 @@
+[package]
+name = "apex-horizon"
+version = "1.0.0"
+edition = "2021"
+authors = ["Apex Horizon Development Team"]
+description = "High-performance open-world 3D driving simulator with realistic physics, custom tuning, AI traffic, and Mediterranean coastal world."
+license = "Apache-2.0"
+repository = "https://github.com/apexhorizon/apex-horizon"
+readme = "README.md"
+keywords = ["game", "simulator", "driving", "racing", "vulkan"]
+categories = ["games", "simulation"]
+
+[lib]
+name = "apex_horizon_core"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "apex-horizon"
+path = "rust/src/main.rs"
+
+[dependencies]
+# Math & Linear Algebra
+glam = { version = "0.27", features = ["serde", "fast-math"] }
+
+# Serialization & Offline Profile Storage
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+
+# Windowing, Graphics & Vulkan/WGPU
+winit = { version = "0.29", features = ["rwh_05"] }
+wgpu = { version = "0.19", features = ["vulkan-portability"] }
+
+# Audio Engine (PipeWire / PulseAudio on Linux, WASAPI on Windows, CoreAudio on macOS)
+rodio = { version = "0.19", default-features = false, features = ["symphonia-all"] }
+
+# Gamepad & Input
+gilrs = "0.10"
+
+# High-Performance Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Async & Multithreading
+pollster = "0.3"
+rayon = "1.10"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "Document", "HtmlCanvasElement", "AudioContext", "Gamepad"] }
+console_error_panic_hook = "0.1"
+
+[features]
+default = ["vulkan"]
+vulkan = []
+wayland = ["winit/wayland"]
+x11 = ["winit/x11"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+overflow-checks = false

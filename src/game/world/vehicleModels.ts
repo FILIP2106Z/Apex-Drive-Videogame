@@ -109,7 +109,40 @@ export function createProceduralVehicle(
   let wheelRadius = 0.35;
   let wheelWidth = 0.26;
 
-  if (vehicleId === 'brawler_4x4') {
+  if (vehicleId === 'cavallo_f80') {
+    // Scuderia Cavallo (Ferrari-inspired aerodynamic mid-rear hypercar)
+    groundOffset = 0.24;
+    wheelRadius = 0.35;
+    wheelbaseX = 1.06;
+    wheelbaseZ = 1.42;
+    cabinW = 1.55;
+    cabinH = 0.38;
+    cabinD = 1.95;
+    bodyGeometry = new THREE.BoxGeometry(2.08, 0.42, 4.4);
+    cabinGeometry = new THREE.BoxGeometry(cabinW, cabinH, cabinD);
+  } else if (vehicleId === 'toro_aventis') {
+    // Toro SV-Aventis (Lamborghini-inspired angular wedge stealth)
+    groundOffset = 0.22;
+    wheelRadius = 0.35;
+    wheelbaseX = 1.1;
+    wheelbaseZ = 1.44;
+    cabinW = 1.6;
+    cabinH = 0.36;
+    cabinD = 1.85;
+    bodyGeometry = new THREE.BoxGeometry(2.14, 0.4, 4.45);
+    cabinGeometry = new THREE.BoxGeometry(cabinW, cabinH, cabinD);
+  } else if (vehicleId === 'royale_w16') {
+    // Royale Chironex (Bugatti-inspired grand tourer with horseshoe grille)
+    groundOffset = 0.26;
+    wheelRadius = 0.37;
+    wheelbaseX = 1.08;
+    wheelbaseZ = 1.46;
+    cabinW = 1.62;
+    cabinH = 0.44;
+    cabinD = 2.1;
+    bodyGeometry = new THREE.BoxGeometry(2.12, 0.48, 4.5);
+    cabinGeometry = new THREE.BoxGeometry(cabinW, cabinH, cabinD);
+  } else if (vehicleId === 'brawler_4x4') {
     groundOffset = 0.58;
     wheelRadius = 0.48;
     wheelWidth = 0.34;
@@ -214,6 +247,73 @@ export function createProceduralVehicle(
   taillightR.position.x = 0.68;
   rootGroup.add(taillightL);
   rootGroup.add(taillightR);
+
+  // Brand-Specific Bespoke Aero & Signature Details
+  if (vehicleId === 'royale_w16') {
+    // Bugatti-inspired Horseshoe Chrome Radiator Grille
+    const horseshoeGeo = new THREE.TorusGeometry(0.32, 0.06, 12, 24, Math.PI);
+    const horseshoe = new THREE.Mesh(horseshoeGeo, chromeMaterial);
+    horseshoe.position.set(0, groundOffset + 0.32, 2.26);
+    horseshoe.rotation.z = Math.PI; // arch shape
+    rootGroup.add(horseshoe);
+
+    // Signature sweeping Bugatti C-line along cabin flanks
+    const cLineMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 });
+    const cLineL = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.05, 8, 24, Math.PI * 1.2), cLineMat);
+    cLineL.position.set(-1.08, groundOffset + 0.55, -0.1);
+    cLineL.rotation.y = Math.PI / 2;
+    const cLineR = cLineL.clone();
+    cLineR.position.x = 1.08;
+    rootGroup.add(cLineL, cLineR);
+
+    // Horizon rear LED lightbar
+    const rearBar = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.06, 0.1), taillightMaterial);
+    rearBar.position.set(0, groundOffset + 0.45, -2.2);
+    rootGroup.add(rearBar);
+  } else if (vehicleId === 'cavallo_f80') {
+    // Ferrari-inspired Side Air Intake Pontoons
+    const scoopGeo = new THREE.BoxGeometry(0.24, 0.28, 0.85);
+    const scoopL = new THREE.Mesh(scoopGeo, accentMaterial);
+    scoopL.position.set(-1.05, groundOffset + 0.35, -0.4);
+    const scoopR = scoopL.clone();
+    scoopR.position.x = 1.05;
+    rootGroup.add(scoopL, scoopR);
+
+    // Mid-rear glass engine bay showing red V8 manifold
+    const engineBlockMat = new THREE.MeshStandardMaterial({ color: 0xdd1122, roughness: 0.4, metalness: 0.6 });
+    const redManifold = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 0.8), engineBlockMat);
+    redManifold.position.set(0, groundOffset + 0.52, -0.85);
+    rootGroup.add(redManifold);
+
+    // Signature round Ferrari taillight lenses
+    const roundTailGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.1, 16);
+    roundTailGeo.rotateX(Math.PI / 2);
+    const roundTailL = new THREE.Mesh(roundTailGeo, taillightMaterial);
+    roundTailL.position.set(-0.7, groundOffset + 0.42, -2.22);
+    const roundTailR = roundTailL.clone();
+    roundTailR.position.x = 0.7;
+    rootGroup.add(roundTailL, roundTailR);
+  } else if (vehicleId === 'toro_aventis') {
+    // Lamborghini-inspired Sharp Angular Stealth Sidepods & Hexagon Intakes
+    const sidePodGeo = new THREE.BoxGeometry(0.26, 0.3, 1.2);
+    const sidePodL = new THREE.Mesh(sidePodGeo, accentMaterial);
+    sidePodL.position.set(-1.1, groundOffset + 0.32, -0.3);
+    sidePodL.rotation.y = -0.06;
+    const sidePodR = sidePodL.clone();
+    sidePodR.position.x = 1.1;
+    sidePodR.rotation.y = 0.06;
+    rootGroup.add(sidePodL, sidePodR);
+
+    // Y-shaped LED headlight signature strips
+    const yMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const yStripL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.08), yMat);
+    yStripL.position.set(-0.7, groundOffset + 0.4, 2.22);
+    yStripL.rotation.z = 0.35;
+    const yStripR = yStripL.clone();
+    yStripR.position.x = 0.7;
+    yStripR.rotation.z = -0.35;
+    rootGroup.add(yStripL, yStripR);
+  }
 
   // Real Headlight Spotlights (cast onto road)
   const spotLightL = new THREE.SpotLight(0xffffff, 4.5, 55, Math.PI / 6, 0.35, 1.2);

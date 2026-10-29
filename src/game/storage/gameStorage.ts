@@ -71,6 +71,9 @@ export const DEFAULT_CONTROLS: ControlBindings = {
 export function createDefaultProfile(): UserProfile {
   const defaultCustomizations: Record<VehicleId, VehicleCustomization> = {
     apex_gtr: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#ff2247', neonColor: 'cyan' },
+    cavallo_f80: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#d4001a', paintFinish: 'metallic', neonColor: 'amber', rimColor: '#ffd700', spoilerStyle: 'carbon_gt' },
+    toro_aventis: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#ffcc00', paintFinish: 'gloss', neonColor: 'lime', rimColor: '#111111', spoilerStyle: 'drag_wing' },
+    royale_w16: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#0044cc', accentColor: '#111622', paintFinish: 'chrome', neonColor: 'cyan', spoilerStyle: 'carbon_gt' },
     venom_v10: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#ffbb00', neonColor: 'amber', spoilerStyle: 'carbon_gt' },
     brawler_4x4: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#2b7a4b', neonColor: 'none', rimStyle: 'deep_dish', spoilerStyle: 'none' },
     viper_v8: { ...DEFAULT_CUSTOMIZATION, bodyColor: '#185adb', neonColor: 'magenta', rimStyle: 'mesh' },
@@ -79,6 +82,9 @@ export function createDefaultProfile(): UserProfile {
 
   const defaultUpgrades: Record<VehicleId, VehicleUpgrades> = {
     apex_gtr: { ...DEFAULT_UPGRADES, engineStage: 1 },
+    cavallo_f80: { ...DEFAULT_UPGRADES, engineStage: 1, forcedInduction: 'twin_turbo' },
+    toro_aventis: { ...DEFAULT_UPGRADES, engineStage: 1, suspensionStage: 1 },
+    royale_w16: { ...DEFAULT_UPGRADES, engineStage: 2, forcedInduction: 'twin_turbo' },
     venom_v10: { ...DEFAULT_UPGRADES },
     brawler_4x4: { ...DEFAULT_UPGRADES, suspensionStage: 1 },
     viper_v8: { ...DEFAULT_UPGRADES },

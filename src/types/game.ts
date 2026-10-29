@@ -2,7 +2,15 @@
  * Apex Horizon - Core Type Definitions
  */
 
-export type VehicleId = 'apex_gtr' | 'venom_v10' | 'brawler_4x4' | 'viper_v8' | 'phantom_ev';
+export type VehicleId =
+  | 'apex_gtr'
+  | 'cavallo_f80'
+  | 'toro_aventis'
+  | 'royale_w16'
+  | 'venom_v10'
+  | 'brawler_4x4'
+  | 'viper_v8'
+  | 'phantom_ev';
 
 export type WeatherType = 'clear' | 'sunset' | 'rain' | 'storm' | 'night' | 'overcast';
 

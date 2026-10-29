@@ -42,6 +42,7 @@ import {
   updateVehicleModelVisuals,
   VehicleMeshRefs,
 } from './game/world/vehicleModels';
+import { TrafficManager } from './game/traffic/trafficSystem';
 import { soundEngine } from './game/audio/soundEngine';
 import { InputManager } from './game/input/inputManager';
 import { TUTORIAL_LESSONS, TUTORIAL_ORDER } from './game/tutorial/tutorialManager';
@@ -49,6 +50,7 @@ import { TitleScreen } from './components/TitleScreen';
 import { GameHud } from './components/GameHud';
 import { CollapsibleBottomDock } from './components/CollapsibleBottomDock';
 import { PauseModal } from './components/PauseModal';
+import { GitHubReleaseModal } from './components/GitHubReleaseModal';
 
 type GameState = 'title' | 'playing' | 'paused';
 type CameraView = 'chase' | 'hood' | 'cinematic';
@@ -64,6 +66,7 @@ export default function App() {
   // Game UI State
   const [gameState, setGameState] = useState<GameState>('title');
   const [isDockOpen, setIsDockOpen] = useState(false);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>('welcome');
 
@@ -337,7 +340,10 @@ export default function App() {
     );
     scene.add(vehicleMeshRefs.group);
 
-    // 5. Input Manager
+    // 5. AI Traffic Simulation Manager
+    const trafficManager = new TrafficManager(scene, 14);
+
+    // 6. Input Manager
     const inputManager = new InputManager(controls);
     inputManagerRef.current = inputManager;
 
@@ -470,6 +476,23 @@ export default function App() {
             dt * 120 * driftComboRef.current * (physicsStateRef.current.driftSlipAngle / 20.0);
         } else {
           driftComboRef.current = Math.max(1.0, driftComboRef.current - dt * 0.8);
+        }
+
+        // AI Traffic simulation update
+        trafficManager.update(
+          { x: physicsStateRef.current.x, z: physicsStateRef.current.z, speedMs: physicsStateRef.current.speedMs },
+          dt
+        );
+
+        // Check collision between player and AI traffic
+        const hitTrafficCar = trafficManager.checkPlayerCollision(physicsStateRef.current);
+        if (hitTrafficCar && Math.abs(physicsStateRef.current.speedMs) > 3.5) {
+          const deltaSpeed = Math.abs(physicsStateRef.current.speedMs - hitTrafficCar.speedMs);
+          const { newDamage } = calculateCollisionDamage(deltaSpeed + 6.0, damageRef.current);
+          damageRef.current = newDamage;
+          soundEngine.playCollisionSound(deltaSpeed);
+          inputManagerRef.current?.triggerGamepadHaptics(220, 0.7, 0.95);
+          physicsStateRef.current.speedMs *= 0.6; // decelerate on collision
         }
 
         // Pit lane repair check (X: 180, Z: 30)
@@ -682,6 +705,7 @@ export default function App() {
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       resizeObserver.disconnect();
+      trafficManager.dispose();
       if (inputManagerRef.current) {
         inputManagerRef.current.dispose();
       }
@@ -706,6 +730,7 @@ export default function App() {
           onStartGame={handleStartGame}
           onOpenGarage={() => setIsDockOpen(true)}
           onOpenSettings={() => setIsDockOpen(true)}
+          onOpenGitHubReleases={() => setIsGitHubModalOpen(true)}
           credits={profile.credits}
         />
       )}
@@ -748,6 +773,7 @@ export default function App() {
             setGameState('playing');
             setIsDockOpen(true);
           }}
+          onOpenGitHubReleases={() => setIsGitHubModalOpen(true)}
           onReturnToTitle={() => setGameState('title')}
         />
       )}
@@ -761,8 +787,15 @@ export default function App() {
         onUpdateGraphics={setGraphics}
         onUpdateControls={setControls}
         onSelectVehicle={handleSelectVehicle}
+        onOpenGitHubReleases={() => setIsGitHubModalOpen(true)}
         isOpen={isDockOpen}
         onToggleOpen={() => setIsDockOpen((prev) => !prev)}
+      />
+
+      {/* Interactive GitHub & 1-Click Release Installation Hub Modal */}
+      <GitHubReleaseModal
+        isOpen={isGitHubModalOpen}
+        onClose={() => setIsGitHubModalOpen(false)}
       />
     </div>
   );

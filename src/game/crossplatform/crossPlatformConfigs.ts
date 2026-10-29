@@ -138,11 +138,13 @@ jobs:
           echo "Building iOS Archive for TestFlight / App Store..."
 `;
 
+export const RELEASE_VERSION = 'v1.0.0';
+
 export const PLATFORM_SPECS: Record<string, PlatformConfig> = {
   android: {
     name: 'Android',
     architecture: 'arm64-v8a / armeabi-v7a / x86_64',
-    packageType: 'Signed APK & Google Play AAB',
+    packageType: 'ApexHorizon-v1.0.0-Release.apk & .aab',
     osExclusiveFeatures: [
       'Hardware Immersive Fullscreen Mode (hides system gesture bar)',
       'Dual-actuator gamepad & steering wheel vibration haptics via Android VibrationEffect',
@@ -154,7 +156,7 @@ export const PLATFORM_SPECS: Record<string, PlatformConfig> = {
   ios: {
     name: 'iOS / iPadOS',
     architecture: 'arm64 (Apple Silicon A-Series / M-Series)',
-    packageType: 'IPA Archive (TestFlight / App Store)',
+    packageType: 'ApexHorizon-v1.0.0-iOS.ipa Archive',
     osExclusiveFeatures: [
       'Dynamic Island & Safe Area inset auto-padding for telemetry HUD',
       'ProMotion 120Hz display sync with CADisplayLink',
@@ -166,7 +168,7 @@ export const PLATFORM_SPECS: Record<string, PlatformConfig> = {
   windows: {
     name: 'Windows',
     architecture: 'x64 & ARM64 (Surface / Snapdragon)',
-    packageType: 'NSIS Installer (.exe) & MSIX Package',
+    packageType: 'ApexHorizon-v1.0.0-Windows-x64-Setup.exe & .msix',
     osExclusiveFeatures: [
       'DirectX 12 / Direct3D 11 ANGLE hardware backend with Ray-Tracing DXR support',
       'RawInput DirectInput + XInput 360 controller vibration and analog triggers',
@@ -178,7 +180,7 @@ export const PLATFORM_SPECS: Record<string, PlatformConfig> = {
   macos: {
     name: 'macOS',
     architecture: 'Universal (Apple Silicon M1/M2/M3/M4 + Intel x86_64)',
-    packageType: 'Notarized DMG & Mac App Store PKG',
+    packageType: 'ApexHorizon-v1.0.0-macOS-Universal.dmg',
     osExclusiveFeatures: [
       'Native Metal WebGL GPU backend with unified memory acceleration',
       'MacBook Force Touch Trackpad simulated clutch/brake resistance',
@@ -190,7 +192,7 @@ export const PLATFORM_SPECS: Record<string, PlatformConfig> = {
   linux: {
     name: 'Linux',
     architecture: 'x86_64 & aarch64',
-    packageType: 'Self-Contained AppImage & Sandboxed Flatpak',
+    packageType: 'ApexHorizon-v1.0.0-x86_64.AppImage & .flatpak',
     osExclusiveFeatures: [
       'Feral Interactive GameMode (gamemoderun) automatic CPU governor optimization',
       'Wayland native fractional scaling + X11 fallback',

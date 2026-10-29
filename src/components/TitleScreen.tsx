@@ -6,6 +6,7 @@
 import React from 'react';
 import { VehicleId, VehicleSpec } from '../types/game';
 import { VEHICLE_DATABASE } from '../game/physics/vehiclePhysics';
+import { Github, Download, Sparkles } from 'lucide-react';
 
 interface TitleScreenProps {
   currentVehicleId: VehicleId;
@@ -14,6 +15,7 @@ interface TitleScreenProps {
   onStartGame: (startTutorial?: boolean) => void;
   onOpenGarage: () => void;
   onOpenSettings: () => void;
+  onOpenGitHubReleases: () => void;
   credits: number;
 }
 
@@ -24,6 +26,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStartGame,
   onOpenGarage,
   onOpenSettings,
+  onOpenGitHubReleases,
   credits,
 }) => {
   const currentSpec: VehicleSpec = VEHICLE_DATABASE[currentVehicleId];
@@ -59,6 +62,17 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
         {/* Top-Right Player Stats & Settings */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={onOpenGitHubReleases}
+            className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-rose-500/50 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wider transition-all cursor-pointer shadow-md text-slate-200 hover:text-white"
+          >
+            <Github className="w-4 h-4 text-rose-400" />
+            <span className="hidden sm:inline">GitHub & Releases</span>
+            <span className="bg-rose-500/20 text-rose-300 text-[10px] font-mono px-1.5 py-0.2 rounded border border-rose-500/30">
+              v1.0.0
+            </span>
+          </button>
+
           <div className="bg-slate-900/90 border border-slate-700/80 px-4 py-1.5 rounded-md flex items-center gap-2">
             <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">Credits</span>
             <span className="text-emerald-400 font-bold tabular-nums">${credits.toLocaleString()}</span>
@@ -109,8 +123,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </div>
             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-cyan-400 h-full rounded-full"
-                style={{ width: `${Math.min(100, (currentSpec.baseTopSpeedKmh / 380) * 100)}%` }}
+                className="bg-cyan-500 h-full rounded-full"
+                style={{ width: `${(currentSpec.baseTopSpeedKmh / 420) * 100}%` }}
               />
             </div>
           </div>
@@ -165,6 +179,14 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm px-5 py-3.5 rounded-md border border-slate-600 transition-all cursor-pointer"
           >
             Custom Garage & Tuning
+          </button>
+
+          <button
+            onClick={onOpenGitHubReleases}
+            className="bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-sm px-4 py-3.5 rounded-md border border-slate-700 hover:border-rose-500 transition-all cursor-pointer flex items-center gap-2"
+          >
+            <Download className="w-4 h-4 text-rose-400" />
+            <span>GitHub Releases</span>
           </button>
         </div>
 

@@ -267,6 +267,183 @@ export function buildOpenWorldMap(scene: THREE.Scene): WorldEnvironmentRefs {
     scene.add(cont);
   }
 
+  // -------------------------------------------------------------
+  // FORZA HORIZON 2 - MEDITERRANEAN COAST & FESTIVAL EXPANSION
+  // -------------------------------------------------------------
+
+  // 1. Horizon Festival Main Entrance Arch (X: 280, Z: -260 across highway)
+  const festivalArchGroup = new THREE.Group();
+  festivalArchGroup.position.set(280, 0, -260);
+
+  const trussMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const festivalPinkMat = new THREE.MeshBasicMaterial({ color: 0xff0066 });
+  const festivalCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+  const festivalYellowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+
+  // Main Crossbeam Arch
+  const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(32, 1.6, 2.4), trussMat);
+  crossBeam.position.set(0, 10.5, 0);
+  festivalArchGroup.add(crossBeam);
+
+  // Pillar Towers L & R
+  const towerGeo = new THREE.BoxGeometry(2.4, 11, 2.4);
+  const pillarL = new THREE.Mesh(towerGeo, trussMat);
+  pillarL.position.set(-15, 5.5, 0);
+  const pillarR = pillarL.clone();
+  pillarR.position.x = 15;
+  festivalArchGroup.add(pillarL, pillarR);
+
+  // Glowing "HORIZON FESTIVAL" Center Billboard
+  const horizonSignMat = new THREE.MeshStandardMaterial({
+    color: 0xff0055,
+    emissive: 0xff0066,
+    emissiveIntensity: 1.5,
+  });
+  const horizonSign = new THREE.Mesh(new THREE.BoxGeometry(16, 2.8, 0.4), horizonSignMat);
+  horizonSign.position.set(0, 11, 1.25);
+  festivalArchGroup.add(horizonSign);
+
+  // Multi-colored Festival Banners
+  for (let b = -12; b <= 12; b += 4) {
+    const bannerColor = b % 8 === 0 ? festivalPinkMat : b % 6 === 0 ? festivalCyanMat : festivalYellowMat;
+    const banner = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.5, 0.1), bannerColor);
+    banner.position.set(b, 7.8, 1.1);
+    festivalArchGroup.add(banner);
+  }
+  scene.add(festivalArchGroup);
+
+  // 2. Highway Coastal Mountain Tunnel (Interstate 99: Z = 160 to 280)
+  const tunnelGroup = new THREE.Group();
+  tunnelGroup.position.set(280, 0, 220);
+
+  const tunnelMat = new THREE.MeshStandardMaterial({ color: 0x2b303c, roughness: 0.8 });
+  const tunnelRoof = new THREE.Mesh(new THREE.BoxGeometry(28, 1.5, 120), tunnelMat);
+  tunnelRoof.position.set(0, 9.5, 0);
+  const tunnelWallL = new THREE.Mesh(new THREE.BoxGeometry(1.5, 9.5, 120), tunnelMat);
+  tunnelWallL.position.set(-14, 4.75, 0);
+  const tunnelWallR = tunnelWallL.clone();
+  tunnelWallR.position.x = 14;
+  tunnelGroup.add(tunnelRoof, tunnelWallL, tunnelWallR);
+
+  // Tunnel Interior Orange Sodium Tube Lights
+  const sodiumTubeMat = new THREE.MeshBasicMaterial({ color: 0xff9922 });
+  for (let tz = -50; tz <= 50; tz += 25) {
+    const tubeL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 8), sodiumTubeMat);
+    tubeL.position.set(-12, 9.2, tz);
+    const tubeR = tubeL.clone();
+    tubeR.position.x = 12;
+    tunnelGroup.add(tubeL, tubeR);
+
+    const tunnelLight = new THREE.PointLight(0xffaa33, 1.8, 30, 1.4);
+    tunnelLight.position.set(0, 8.5, tz);
+    tunnelGroup.add(tunnelLight);
+  }
+  scene.add(tunnelGroup);
+
+  // 3. Mediterranean Villas with Terracotta Roofs along coastal hills (X: -210 to -170, Z: -250 to -50)
+  const villaWallMat = new THREE.MeshStandardMaterial({ color: 0xe8dcbe, roughness: 0.7 }); // Tuscan limestone
+  const terracottaMat = new THREE.MeshStandardMaterial({ color: 0xb84b28, roughness: 0.6 }); // Terracotta tile roof
+
+  const villaCoords = [
+    { x: -200, z: -230, scale: 1.2 },
+    { x: -180, z: -170, scale: 1.0 },
+    { x: -210, z: -110, scale: 1.3 },
+    { x: -190, z: -40, scale: 1.1 },
+    { x: -175, z: 40, scale: 1.2 },
+  ];
+
+  villaCoords.forEach((v) => {
+    const villa = new THREE.Group();
+    const groundH = getGroundElevation(v.x, v.z);
+    villa.position.set(v.x, groundH, v.z);
+
+    // Villa Main House
+    const house = new THREE.Mesh(new THREE.BoxGeometry(14 * v.scale, 8 * v.scale, 10 * v.scale), villaWallMat);
+    house.position.y = (4 * v.scale);
+    house.castShadow = true;
+    house.receiveShadow = true;
+    villa.add(house);
+
+    // Terracotta Hipped Roof
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(11 * v.scale, 4.5 * v.scale, 4), terracottaMat);
+    roof.position.y = (8 * v.scale) + (2.25 * v.scale);
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    villa.add(roof);
+
+    // Pergola / Balcony
+    const balcony = new THREE.Mesh(new THREE.BoxGeometry(6 * v.scale, 0.4, 3 * v.scale), villaWallMat);
+    balcony.position.set(0, 5 * v.scale, 5.5 * v.scale);
+    villa.add(balcony);
+
+    scene.add(villa);
+  });
+
+  // 4. Mediterranean Cypress Trees along Coastal Highway and Boulevard
+  const cypressTrunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
+  const cypressFoliageMat = new THREE.MeshStandardMaterial({ color: 0x1e3f20, roughness: 0.85 }); // deep Mediterranean pine green
+
+  for (let cz = -350; cz <= 350; cz += 32) {
+    // Coastal Highway Cypress row (X: -276)
+    const treeGroup = new THREE.Group();
+    const treeY = getGroundElevation(-276, cz);
+    treeGroup.position.set(-276, treeY, cz);
+
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 4), cypressTrunkMat);
+    trunk.position.y = 2;
+    trunk.castShadow = true;
+
+    // Slender Italian Cypress Cone
+    const foliage = new THREE.Mesh(new THREE.ConeGeometry(1.6, 12, 8), cypressFoliageMat);
+    foliage.position.y = 9;
+    foliage.castShadow = true;
+
+    treeGroup.add(trunk, foliage);
+    scene.add(treeGroup);
+  }
+
+  // 5. Luxury Yachts in the Riviera Coastline Bay (X < -340)
+  const yachtMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
+  const teakWoodMat = new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.7 });
+  const mastMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.8 });
+
+  const yachtSpots = [
+    { x: -390, z: -150, rotY: 0.4 },
+    { x: -440, z: -40, rotY: -0.2 },
+    { x: -410, z: 80, rotY: 0.8 },
+    { x: -470, z: 180, rotY: 0.1 },
+  ];
+
+  yachtSpots.forEach((spot) => {
+    const yacht = new THREE.Group();
+    yacht.position.set(spot.x, -0.6, spot.z);
+    yacht.rotation.y = spot.rotY;
+
+    // Yacht Hull
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(8, 3.2, 24), yachtMat);
+    hull.position.y = 1.2;
+    hull.castShadow = true;
+    yacht.add(hull);
+
+    // Teak Wood Deck
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.2, 23.6), teakWoodMat);
+    deck.position.y = 2.85;
+    yacht.add(deck);
+
+    // Cabin Bridge
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(5.8, 3.0, 11), yachtMat);
+    bridge.position.set(0, 4.4, -1);
+    bridge.castShadow = true;
+    yacht.add(bridge);
+
+    // Radar Mast
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 8), mastMat);
+    mast.position.set(0, 9.8, -2);
+    yacht.add(mast);
+
+    scene.add(yacht);
+  });
+
   // District D: Pit Lane & Quick Repair Station Bay (X: 180, Z: 30)
   const repairBayZone = new THREE.Group();
   repairBayZone.position.set(180, 0, 30);

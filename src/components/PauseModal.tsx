@@ -4,12 +4,14 @@
 
 import React from 'react';
 import { GameTelemetry } from '../types/game';
+import { Zap, Github } from 'lucide-react';
 
 interface PauseModalProps {
   telemetry: GameTelemetry;
   onResume: () => void;
   onResetCar: () => void;
   onOpenGarage: () => void;
+  onOpenGitHubReleases: () => void;
   onReturnToTitle: () => void;
 }
 
@@ -18,6 +20,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   onResume,
   onResetCar,
   onOpenGarage,
+  onOpenGitHubReleases,
   onReturnToTitle,
 }) => {
   return (
@@ -77,6 +80,14 @@ export const PauseModal: React.FC<PauseModalProps> = ({
             className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 rounded-lg border border-slate-700 cursor-pointer transition-colors"
           >
             Tuning & Garage Menu
+          </button>
+
+          <button
+            onClick={onOpenGitHubReleases}
+            className="w-full bg-gradient-to-r from-slate-800 to-slate-800/90 hover:from-rose-950/40 hover:to-slate-800 text-slate-200 hover:text-white font-bold text-xs py-2.5 rounded-lg border border-slate-700 hover:border-rose-500/50 cursor-pointer transition-all flex items-center justify-center gap-2"
+          >
+            <Github className="w-4 h-4 text-rose-400" />
+            <span>GitHub Releases & 1-Click Install (v1.0.0)</span>
           </button>
 
           <button
