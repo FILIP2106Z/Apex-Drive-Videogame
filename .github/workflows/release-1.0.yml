@@ -91,7 +91,7 @@ jobs:
           path: dist-native/*.tar.gz
 
   # 2. WINDOWS BUILD: x64 & ARM64 NSIS Installer (.exe) & MSIX
-  build-windows:
+  #build-windows:
     name: Build Windows (x64 / ARM64 .exe & .msix)
     runs-on: windows-latest
     steps:
@@ -121,7 +121,7 @@ jobs:
           path: dist-native\*.zip
 
   # 3. MACOS BUILD: Universal DMG (Apple Silicon M1-M4 & Intel x86_64)
-  build-macos:
+  #build-macos:
     name: Build macOS (Universal Metal DMG)
     runs-on: macos-latest
     steps:
@@ -187,7 +187,7 @@ jobs:
           path: dist-native/*.tar.gz
 
   # 5. IOS BUILD: IPA Xcode Archive
-  build-ios:
+  #build-ios:
     name: Build iOS (IPA Archive)
     runs-on: macos-14
     steps:
