@@ -20,6 +20,7 @@ import { VEHICLE_DATABASE } from '../game/physics/vehiclePhysics';
 import { SEASONAL_CHALLENGES, INITIAL_RIVAL_LEADERBOARDS } from '../game/challenges/seasonalChallenges';
 import { PLATFORM_SPECS, GITHUB_WORKFLOW_YML } from '../game/crossplatform/crossPlatformConfigs';
 import { exportProfileToSyncCode, importProfileFromSyncCode } from '../game/storage/gameStorage';
+import { FREE_3D_CAR_PRESETS, Free3DCarPreset } from '../game/models/carModelLoader';
 
 interface CollapsibleBottomDockProps {
   profile: UserProfile;
@@ -53,6 +54,8 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
   const [importCodeInput, setImportCodeInput] = useState('');
   const [syncStatusMsg, setSyncStatusMsg] = useState<{ text: string; isError: boolean } | null>(null);
   const [copiedYaml, setCopiedYaml] = useState(false);
+  const [customGlbUrl, setCustomGlbUrl] = useState('');
+  const [modelStatusMsg, setModelStatusMsg] = useState<string | null>(null);
 
   const currentVehicleId = profile.currentVehicleId;
   const currentCustom = profile.customizations[currentVehicleId];
@@ -102,20 +105,91 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
     setTimeout(() => setSyncStatusMsg(null), 4000);
   };
 
-  const handleApplyGraphicsPreset = (preset: 'ultra' | 'high' | 'medium' | 'low') => {
+  const handleSelect3dPreset = (preset: Free3DCarPreset) => {
+    onUpdateProfile({
+      ...profile,
+      custom3dModel: {
+        enabled: true,
+        modelUrl: preset.url,
+        modelName: `${preset.brand} ${preset.name}`,
+        scale: preset.scaleModifier,
+        yOffset: preset.yOffset,
+      },
+    });
+    setModelStatusMsg(`Loaded: ${preset.name} from GitHub!`);
+    setTimeout(() => setModelStatusMsg(null), 3500);
+  };
+
+  const handleLoadCustomGlb = () => {
+    if (!customGlbUrl.trim()) return;
+    onUpdateProfile({
+      ...profile,
+      custom3dModel: {
+        enabled: true,
+        modelUrl: customGlbUrl.trim(),
+        modelName: 'Custom 3D Model',
+        scale: 1.0,
+        yOffset: 0.0,
+      },
+    });
+    setModelStatusMsg('Custom 3D model loaded from URL!');
+    setTimeout(() => setModelStatusMsg(null), 3500);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    onUpdateProfile({
+      ...profile,
+      custom3dModel: {
+        enabled: true,
+        modelUrl: objectUrl,
+        modelName: file.name.replace(/\.[^/.]+$/, ''),
+        scale: 1.0,
+        yOffset: 0.0,
+      },
+    });
+    setModelStatusMsg(`Local 3D file "${file.name}" loaded!`);
+    setTimeout(() => setModelStatusMsg(null), 3500);
+  };
+
+  const handleResetToProcedural = () => {
+    onUpdateProfile({
+      ...profile,
+      custom3dModel: {
+        enabled: false,
+        modelUrl: '',
+        modelName: '',
+        scale: 1.0,
+        yOffset: 0.0,
+      },
+    });
+    setModelStatusMsg('Restored procedural vehicle model.');
+    setTimeout(() => setModelStatusMsg(null), 2500);
+  };
+
+  const handleApplyGraphicsPreset = (preset: 'ultra' | 'high' | 'medium' | 'low' | 'performance') => {
     if (preset === 'ultra') {
       onUpdateGraphics({
         ...graphics,
         preset: 'ultra',
         rayTracingReflections: true,
         globalIllumination: true,
-        shadowMapRes: 2048,
+        shadowMapRes: 4096,
         renderScale: 1.25,
         bloom: true,
         motionBlur: true,
+        speedLines: true,
         rainDroplets: true,
-        drawDistance: 900,
+        vignette: true,
+        drawDistance: 1200,
+        targetFps: 0,
         antiAliasing: true,
+        toneMapping: 'aces_filmic',
+        volumetricGodRays: true,
+        fov: 65,
+        particleDensity: 'ultra',
       });
     } else if (preset === 'high') {
       onUpdateGraphics({
@@ -123,13 +197,20 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
         preset: 'high',
         rayTracingReflections: true,
         globalIllumination: true,
-        shadowMapRes: 1024,
+        shadowMapRes: 2048,
         renderScale: 1.0,
         bloom: true,
         motionBlur: false,
+        speedLines: true,
         rainDroplets: true,
-        drawDistance: 600,
+        vignette: true,
+        drawDistance: 800,
+        targetFps: 60,
         antiAliasing: true,
+        toneMapping: 'aces_filmic',
+        volumetricGodRays: true,
+        fov: 65,
+        particleDensity: 'high',
       });
     } else if (preset === 'medium') {
       onUpdateGraphics({
@@ -137,28 +218,63 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
         preset: 'medium',
         rayTracingReflections: false,
         globalIllumination: false,
-        shadowMapRes: 512,
+        shadowMapRes: 1024,
         renderScale: 0.85,
         bloom: false,
         motionBlur: false,
+        speedLines: false,
         rainDroplets: false,
-        drawDistance: 400,
+        vignette: true,
+        drawDistance: 500,
+        targetFps: 60,
         antiAliasing: false,
+        toneMapping: 'reinhard',
+        volumetricGodRays: false,
+        fov: 65,
+        particleDensity: 'medium',
       });
-    } else {
-      // low mobile
+    } else if (preset === 'low') {
       onUpdateGraphics({
         ...graphics,
         preset: 'low',
         rayTracingReflections: false,
         globalIllumination: false,
-        shadowMapRes: 0,
-        renderScale: 0.65,
+        shadowMapRes: 512,
+        renderScale: 0.75,
         bloom: false,
         motionBlur: false,
+        speedLines: false,
         rainDroplets: false,
-        drawDistance: 250,
+        vignette: false,
+        drawDistance: 350,
+        targetFps: 30,
         antiAliasing: false,
+        toneMapping: 'neutral',
+        volumetricGodRays: false,
+        fov: 65,
+        particleDensity: 'low',
+      });
+    } else {
+      // performance / steam deck / older hardware
+      onUpdateGraphics({
+        ...graphics,
+        preset: 'performance',
+        rayTracingReflections: false,
+        globalIllumination: false,
+        shadowMapRes: 0,
+        renderScale: 0.6,
+        bloom: false,
+        motionBlur: false,
+        speedLines: false,
+        rainDroplets: false,
+        vignette: false,
+        drawDistance: 250,
+        targetFps: 30,
+        antiAliasing: false,
+        toneMapping: 'neutral',
+        volumetricGodRays: false,
+        fov: 65,
+        particleDensity: 'low',
       });
     }
   };
@@ -484,6 +600,103 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* 3. FREE 3D CAR MODELS FROM GITHUB & CUSTOM GLTF/GLB IMPORTER */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                      <span>Free 3D Car Models from GitHub & GLTF/GLB Importer</span>
+                      <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-mono">PBR 3D Engine</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Load free open-source 3D vehicles directly from GitHub raw repositories, CDNs, or upload your own local .glb model!
+                    </div>
+                  </div>
+
+                  {profile.custom3dModel?.enabled && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded">
+                        Active: {profile.custom3dModel.modelName}
+                      </span>
+                      <button
+                        onClick={handleResetToProcedural}
+                        className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded cursor-pointer border border-slate-700"
+                      >
+                        Reset to Fleet
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {modelStatusMsg && (
+                  <div className="text-xs font-mono bg-cyan-950/80 border border-cyan-700 text-cyan-300 p-2 rounded">
+                    {modelStatusMsg}
+                  </div>
+                )}
+
+                {/* 1-Click Free Presets from GitHub */}
+                <div>
+                  <div className="text-xs font-bold text-slate-300 mb-2">1-Click Free Models from GitHub / Open Repos:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {FREE_3D_CAR_PRESETS.map((preset) => {
+                      const isActive = profile.custom3dModel?.enabled && profile.custom3dModel.modelUrl === preset.url;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleSelect3dPreset(preset)}
+                          className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                            isActive
+                              ? 'bg-cyan-950/80 border-cyan-400 shadow-md'
+                              : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="text-[10px] font-mono text-cyan-400 font-bold">{preset.brand}</div>
+                          <div className="text-xs font-bold text-white truncate">{preset.name}</div>
+                          <div className="text-[10px] text-slate-400 mt-1 line-clamp-2">{preset.description}</div>
+                          <div className="text-[9px] font-mono text-slate-500 mt-2 truncate">{preset.source}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom GitHub / CDN URL or File Upload */}
+                <div className="pt-2 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Load from any GitHub Raw / Web URL (.glb / .gltf):
+                    </label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="url"
+                        placeholder="https://raw.githubusercontent.com/.../car.glb"
+                        value={customGlbUrl}
+                        onChange={(e) => setCustomGlbUrl(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-400 font-mono"
+                      />
+                      <button
+                        onClick={handleLoadCustomGlb}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1 rounded text-xs cursor-pointer shadow"
+                      >
+                        Load
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Upload Local 3D Model File (.glb / .gltf):
+                    </label>
+                    <input
+                      type="file"
+                      accept=".glb,.gltf"
+                      onChange={handleFileUpload}
+                      className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-cyan-400 hover:file:bg-slate-700 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -568,6 +781,69 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                   </table>
                 </div>
               </div>
+
+              {/* Forza Horizon 2 Bonus Boards Tracker */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">💥</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Forza Horizon 2 Bonus Boards
+                      </h4>
+                      <div className="text-[11px] text-slate-400">
+                        Smash bonus boards hidden across the Riviera coast, Tuscan vineyard, and festival arena!
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs font-mono bg-rose-950/80 border border-rose-600 text-rose-300 px-3 py-1 rounded">
+                    Smashed: {(profile.smashedBoards || []).length} / 6
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                  {[
+                    { id: 'board_xp5000_cliff', name: '5,000 XP Coastal Cliff Overlook', reward: '$5,000', hint: 'Riviera seaside corniche cliff' },
+                    { id: 'board_xp1000_vineyard', name: '1,000 XP Tuscan Vineyard Trellis', reward: '$1,000', hint: 'Inside the hillside grape rows' },
+                    { id: 'board_xp5000_piazza', name: '5,000 XP Piazza Clock Tower', reward: '$5,000', hint: 'Next to the 38m Italian Campanile' },
+                    { id: 'board_fasttravel_villa', name: 'Fast Travel 50% Bonus Board', reward: '$7,500', hint: 'Behind the Tuscan villa stone arch' },
+                    { id: 'board_xp10000_mountain', name: '10,000 XP Mountain Hairpin', reward: '$10,000', hint: 'At the peak launch cliff' },
+                    { id: 'board_xp5000_festival', name: '5,000 XP Festival Main Stage', reward: '$5,000', hint: 'Behind the DJ sound trusses' },
+                  ].map((b) => {
+                    const isSmashed = (profile.smashedBoards || []).includes(b.id);
+                    return (
+                      <div
+                        key={b.id}
+                        className={`p-2.5 rounded border flex items-center justify-between ${
+                          isSmashed
+                            ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-200'
+                            : 'bg-slate-950/70 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        <div>
+                          <div className={`font-bold text-xs ${isSmashed ? 'text-emerald-300' : 'text-slate-300'}`}>
+                            {b.name}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">{b.hint}</div>
+                        </div>
+
+                        <div className="text-right">
+                          <span
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                              isSmashed
+                                ? 'bg-emerald-900/60 text-emerald-300'
+                                : 'bg-slate-800 text-amber-400'
+                            }`}
+                          >
+                            {isSmashed ? 'SMASHED' : b.reward}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
@@ -578,11 +854,11 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
                 <div>
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-300">Graphics Quality Preset</div>
-                  <div className="text-[11px] text-slate-400">Ray-traced reflections & dynamic global illumination</div>
+                  <div className="text-[11px] text-slate-400">Forza Horizon 2 Southern Europe visuals, ACES tone mapping & ray-traced reflections</div>
                 </div>
 
-                <div className="flex gap-2">
-                  {(['ultra', 'high', 'medium', 'low'] as const).map((preset) => (
+                <div className="flex flex-wrap gap-1.5">
+                  {(['ultra', 'high', 'medium', 'low', 'performance'] as const).map((preset) => (
                     <button
                       key={preset}
                       onClick={() => handleApplyGraphicsPreset(preset)}
@@ -592,19 +868,19 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                           : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500'
                       }`}
                     >
-                      {preset === 'ultra' ? 'Ultra (GTA 6 RT)' : preset}
+                      {preset === 'ultra' ? 'Ultra (Forza Horizon 2 Max)' : preset === 'high' ? 'High (60 FPS PBR)' : preset}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Detailed Toggles */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                 {/* Ray Tracing Reflections */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="font-bold text-white">Ray-Traced Screen Reflections</div>
-                    <div className="text-[11px] text-slate-400">Planar wet road and puddles reflections</div>
+                    <div className="text-[11px] text-slate-400">Planar wet road, puddles & sea reflections</div>
                   </div>
                   <input
                     type="checkbox"
@@ -618,7 +894,7 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="font-bold text-white">Global Illumination & Contact Shadows</div>
-                    <div className="text-[11px] text-slate-400">Multi-bounce ambient lighting & wheel contact shadows</div>
+                    <div className="text-[11px] text-slate-400">Multi-bounce ambient lighting & wheel contact ambient occlusion</div>
                   </div>
                   <input
                     type="checkbox"
@@ -628,46 +904,128 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                   />
                 </div>
 
+                {/* Volumetric God Rays & Atmospheric Fog */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Volumetric Sun God Rays & Tuscan Fog</div>
+                    <div className="text-[11px] text-slate-400">Atmospheric golden hour scattering & mist</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={graphics.volumetricGodRays}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, volumetricGodRays: e.target.checked })}
+                    className="w-4 h-4 cursor-pointer accent-rose-500"
+                  />
+                </div>
+
                 {/* Shadow Map Quality */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Dynamic Shadow Resolution</div>
-                    <div className="text-[11px] text-slate-400">Directional sun shadow map depth</div>
+                    <div className="font-bold text-white">Shadow Resolution</div>
+                    <div className="text-[11px] text-slate-400">Directional sun shadow depth map</div>
                   </div>
                   <select
                     value={graphics.shadowMapRes}
                     onChange={(e) => onUpdateGraphics({ ...graphics, shadowMapRes: Number(e.target.value) as any })}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer"
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer text-white font-mono"
                   >
                     <option value={0}>Disabled (Max FPS)</option>
                     <option value={512}>Low (512x512)</option>
                     <option value={1024}>High (1024x1024)</option>
-                    <option value={2048}>Ultra (2048x2048 Soft)</option>
+                    <option value={2048}>Ultra (2048x2048 PCF Soft)</option>
+                    <option value={4096}>Cinematic (4096x4096 Ultra)</option>
                   </select>
+                </div>
+
+                {/* Tone Mapping Engine */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Color Tone Mapping</div>
+                    <div className="text-[11px] text-slate-400">High dynamic range color curve</div>
+                  </div>
+                  <select
+                    value={graphics.toneMapping}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, toneMapping: e.target.value as any })}
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer text-white font-mono"
+                  >
+                    <option value="aces_filmic">ACES Filmic (Forza Horizon Style)</option>
+                    <option value="reinhard">Reinhard (Smooth Contrast)</option>
+                    <option value="cineon">Cineon (Vintage Film)</option>
+                    <option value="neutral">Neutral (Standard Raw)</option>
+                  </select>
+                </div>
+
+                {/* Camera Field of View Slider */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Camera Field of View (FOV)</div>
+                    <div className="text-[11px] text-slate-400">Adjusts chase camera perspective ({graphics.fov}°)</div>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="105"
+                    step="1"
+                    value={graphics.fov}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, fov: parseInt(e.target.value) })}
+                    className="w-24 cursor-pointer accent-cyan-400"
+                  />
                 </div>
 
                 {/* Render Scale */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Internal Render Resolution Scale</div>
-                    <div className="text-[11px] text-slate-400">Adjusts viewport pixel ratio ({graphics.renderScale}x)</div>
+                    <div className="font-bold text-white">Render Resolution Scale</div>
+                    <div className="text-[11px] text-slate-400">Internal pixel density ({graphics.renderScale}x)</div>
                   </div>
                   <input
                     type="range"
                     min="0.5"
                     max="1.5"
-                    step="0.1"
+                    step="0.05"
                     value={graphics.renderScale}
                     onChange={(e) => onUpdateGraphics({ ...graphics, renderScale: parseFloat(e.target.value) })}
                     className="w-24 cursor-pointer accent-cyan-400"
                   />
                 </div>
 
-                {/* Post-Processing Effects */}
+                {/* Motion Blur & Speed Lines */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Dynamic Speed Warp Lines & Blur</div>
+                    <div className="text-[11px] text-slate-400">High-speed radial velocity warp lines</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={graphics.speedLines}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, speedLines: e.target.checked })}
+                    className="w-4 h-4 cursor-pointer accent-rose-500"
+                  />
+                </div>
+
+                {/* Particle Density */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Particle FX Density</div>
+                    <div className="text-[11px] text-slate-400">Tire smoke, nitro flames & board debris</div>
+                  </div>
+                  <select
+                    value={graphics.particleDensity}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, particleDensity: e.target.value as any })}
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer text-white font-mono"
+                  >
+                    <option value="low">Low (Mobile)</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="ultra">Ultra (Max Debris)</option>
+                  </select>
+                </div>
+
+                {/* Bloom & Neon Glow */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="font-bold text-white">Bloom & Neon Emissive Glow</div>
-                    <div className="text-[11px] text-slate-400">Headlights & underglow light scattering</div>
+                    <div className="text-[11px] text-slate-400">Headlights, festival lasers & neon strips</div>
                   </div>
                   <input
                     type="checkbox"
@@ -680,7 +1038,7 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                 {/* Rain Droplets on Screen */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Rain Screen Droplets & Vignette</div>
+                    <div className="font-bold text-white">Rain Screen Droplets & Lens Vignette</div>
                     <div className="text-[11px] text-slate-400">Dynamic lens wet droplets during rainfall</div>
                   </div>
                   <input
@@ -694,30 +1052,46 @@ export const CollapsibleBottomDock: React.FC<CollapsibleBottomDockProps> = ({
                 {/* Target FPS */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Target Frame Rate Cap</div>
-                    <div className="text-[11px] text-slate-400">Frame pacing limiter</div>
+                    <div className="font-bold text-white">Target Frame Rate Limiter</div>
+                    <div className="text-[11px] text-slate-400">Smooth frame pacing & battery saver</div>
                   </div>
                   <select
                     value={graphics.targetFps}
                     onChange={(e) => onUpdateGraphics({ ...graphics, targetFps: Number(e.target.value) as any })}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer"
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer text-white font-mono"
                   >
                     <option value={30}>30 FPS (Battery Saver)</option>
                     <option value={60}>60 FPS (Silky Smooth)</option>
+                    <option value={120}>120 FPS (ProMotion / Esports)</option>
+                    <option value={144}>144 FPS (Ultra-High Refresh)</option>
                     <option value={0}>Uncapped (Maximum Refresh)</option>
                   </select>
+                </div>
+
+                {/* Anti-Aliasing */}
+                <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white">Anti-Aliasing (MSAA/FXAA)</div>
+                    <div className="text-[11px] text-slate-400">Smooth jagged polygon edges</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={graphics.antiAliasing}
+                    onChange={(e) => onUpdateGraphics({ ...graphics, antiAliasing: e.target.checked })}
+                    className="w-4 h-4 cursor-pointer accent-rose-500"
+                  />
                 </div>
 
                 {/* Graphics Backend */}
                 <div className="bg-slate-900/80 p-3 rounded border border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Graphics Rendering Backend</div>
+                    <div className="font-bold text-white">Graphics Rendering Pipeline</div>
                     <div className="text-[11px] text-slate-400">WebGL pipeline profile</div>
                   </div>
                   <select
                     value={graphics.backend}
                     onChange={(e) => onUpdateGraphics({ ...graphics, backend: e.target.value as any })}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer"
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs cursor-pointer text-white font-mono"
                   >
                     <option value="WebGL 2.0 (High-PBR)">WebGL 2.0 (High-PBR)</option>
                     <option value="WebGL 1.0 (Low-Power)">WebGL 1.0 (Low-Power Fallback)</option>

@@ -6,6 +6,22 @@
 import * as THREE from 'three';
 import { WeatherType } from '../../types/game';
 
+export interface BonusBoardRef {
+  id: string;
+  name: string;
+  type: 'xp_1000' | 'xp_5000' | 'xp_10000' | 'fast_travel';
+  x: number;
+  y: number;
+  z: number;
+  rewardCredits: number;
+  rewardXp: number;
+  group: THREE.Group;
+  panelMesh: THREE.Mesh;
+  debrisPieces: THREE.Mesh[];
+  smashed: boolean;
+  smashTime: number;
+}
+
 export interface WorldEnvironmentRefs {
   scene: THREE.Scene;
   sunLight: THREE.DirectionalLight;
@@ -22,6 +38,10 @@ export interface WorldEnvironmentRefs {
   stuntJumpMarker: THREE.Group;
   checkpointRings: THREE.Group[];
   repairBayZone: THREE.Group;
+  bonusBoards: BonusBoardRef[];
+  festivalLasers: THREE.Mesh[];
+  festivalScreenMat: THREE.MeshBasicMaterial;
+  speedTrapFlashes: THREE.PointLight[];
 }
 
 /**
@@ -402,6 +422,316 @@ export function buildOpenWorldMap(scene: THREE.Scene): WorldEnvironmentRefs {
     scene.add(treeGroup);
   }
 
+  // -------------------------------------------------------------
+  // FORZA HORIZON 2 - TUSCAN VILLAGE PIAZZA & CAMPANILE CLOCK TOWER
+  // -------------------------------------------------------------
+  // A. Stone Campanile (Clock Tower) (X: -135, Z: -15)
+  const clockTowerGroup = new THREE.Group();
+  clockTowerGroup.position.set(-135, 0, -15);
+
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0xdfd4bc, roughness: 0.85 }); // Tuscan weathered sandstone
+  const clockRoofMat = new THREE.MeshStandardMaterial({ color: 0x9e3b20, roughness: 0.6 }); // Terracotta tile roof
+  const bellMat = new THREE.MeshStandardMaterial({ color: 0x5a7d65, metalness: 0.8, roughness: 0.3 }); // Aged verdigris bronze
+  const clockFaceMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const clockHandMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+  // Base shaft (30m tall)
+  const towerBase = new THREE.Mesh(new THREE.BoxGeometry(6.5, 30, 6.5), stoneMat);
+  towerBase.position.y = 15;
+  towerBase.castShadow = true;
+  towerBase.receiveShadow = true;
+  clockTowerGroup.add(towerBase);
+
+  // Arched Belfry (Bell Chamber)
+  const belfryPillars = new THREE.Mesh(new THREE.BoxGeometry(5.8, 6, 5.8), stoneMat);
+  belfryPillars.position.y = 33;
+  belfryPillars.castShadow = true;
+  clockTowerGroup.add(belfryPillars);
+
+  // Bronze Bell inside Belfry
+  const bell = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.0, 12), bellMat);
+  bell.position.y = 33.5;
+  clockTowerGroup.add(bell);
+
+  // Pyramid Terracotta Spire Roof
+  const spireRoof = new THREE.Mesh(new THREE.ConeGeometry(4.8, 7.5, 4), clockRoofMat);
+  spireRoof.position.y = 39.75;
+  spireRoof.rotation.y = Math.PI / 4;
+  spireRoof.castShadow = true;
+  clockTowerGroup.add(spireRoof);
+
+  // 4 Clock Dials (North, South, East, West)
+  const dialOffsets = [
+    { x: 0, z: 3.3, rotY: 0 },
+    { x: 0, z: -3.3, rotY: Math.PI },
+    { x: 3.3, z: 0, rotY: Math.PI / 2 },
+    { x: -3.3, z: 0, rotY: -Math.PI / 2 },
+  ];
+  dialOffsets.forEach((d) => {
+    const dial = new THREE.Mesh(new THREE.CircleGeometry(1.4, 24), clockFaceMat);
+    dial.position.set(d.x, 26, d.z);
+    dial.rotation.y = d.rotY;
+    const hand = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.1), clockHandMat);
+    hand.position.set(0, 0.45, 0.02);
+    dial.add(hand);
+    clockTowerGroup.add(dial);
+  });
+  scene.add(clockTowerGroup);
+
+  // B. Village Piazza Cobblestone Square & Tiered Stone Fountain (X: -135, Z: 18)
+  const piazzaMat = new THREE.MeshStandardMaterial({ color: 0x8a8479, roughness: 0.9 });
+  const piazzaSquare = new THREE.Mesh(new THREE.BoxGeometry(45, 0.15, 45), piazzaMat);
+  piazzaSquare.position.set(-135, 0.08, 15);
+  piazzaSquare.receiveShadow = true;
+  scene.add(piazzaSquare);
+
+  const fountainGroup = new THREE.Group();
+  fountainGroup.position.set(-135, 0.15, 15);
+  // Lower basin
+  const basinL = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.5, 1.1, 24), stoneMat);
+  basinL.position.y = 0.55;
+  basinL.castShadow = true;
+  // Water surface
+  const waterGeo = new THREE.CircleGeometry(4.9, 24);
+  waterGeo.rotateX(-Math.PI / 2);
+  const fountainWater = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ color: 0x2288aa, roughness: 0.1, metalness: 0.8 }));
+  fountainWater.position.y = 0.95;
+  // Upper tiered basin & finial
+  const basinU = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.6, 0.8, 16), stoneMat);
+  basinU.position.y = 2.2;
+  const fountainStem = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 3.2, 12), stoneMat);
+  fountainStem.position.y = 1.8;
+  fountainGroup.add(basinL, fountainWater, basinU, fountainStem);
+  scene.add(fountainGroup);
+
+  // C. Mediterranean Stone Umbrella Pines (Pinus pinea with wide parasol canopy)
+  const pineTrunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.95 });
+  const pineFoliageMat = new THREE.MeshStandardMaterial({ color: 0x2b4f2c, roughness: 0.85 });
+
+  const pineCoords = [
+    { x: -160, z: -35 },
+    { x: -110, z: -25 },
+    { x: -115, z: 45 },
+    { x: -165, z: 35 },
+    { x: -195, z: 90 },
+    { x: -210, z: 20 },
+  ];
+  pineCoords.forEach((p) => {
+    const pineGroup = new THREE.Group();
+    pineGroup.position.set(p.x, getGroundElevation(p.x, p.z), p.z);
+    // Crooked rustic pine trunk
+    const pTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.75, 9, 8), pineTrunkMat);
+    pTrunk.position.y = 4.5;
+    pTrunk.castShadow = true;
+    // Spreading parasol / umbrella canopy
+    const pCanopy1 = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 4.2, 2.2, 12), pineFoliageMat);
+    pCanopy1.position.y = 9.8;
+    pCanopy1.castShadow = true;
+    const pCanopy2 = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 2.0, 1.8, 10), pineFoliageMat);
+    pCanopy2.position.y = 11.2;
+    pCanopy2.castShadow = true;
+    pineGroup.add(pTrunk, pCanopy1, pCanopy2);
+    scene.add(pineGroup);
+  });
+
+  // D. Tuscan Countryside Hillside Vineyard (Rows of Grape Vine Trellises)
+  const woodPostMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+  const vineFoliageMat = new THREE.MeshStandardMaterial({ color: 0x365e28, roughness: 0.8 });
+
+  for (let r = 0; r < 5; r++) {
+    const rowX = -155 - r * 7;
+    const vineGroup = new THREE.Group();
+    vineGroup.position.set(rowX, 0, 75);
+
+    // Continuous leafy grape bush hedge
+    const vineHedge = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.0, 50), vineFoliageMat);
+    vineHedge.position.set(0, 1.0, 0);
+    vineHedge.castShadow = true;
+    vineGroup.add(vineHedge);
+
+    // Wooden trellis support posts
+    for (let pz = -24; pz <= 24; pz += 12) {
+      const vPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.4), woodPostMat);
+      vPost.position.set(0, 1.2, pz);
+      vPost.castShadow = true;
+      vineGroup.add(vPost);
+    }
+    scene.add(vineGroup);
+  }
+
+  // -------------------------------------------------------------
+  // FORZA HORIZON 2 - MAIN FESTIVAL STAGE COMPLEX
+  // -------------------------------------------------------------
+  // Location: X: 280, Z: -320 (North Highway Festival Arena)
+  const festivalStageGroup = new THREE.Group();
+  festivalStageGroup.position.set(280, 0, -320);
+
+  // Concert Stage Platform
+  const stagePlat = new THREE.Mesh(
+    new THREE.BoxGeometry(38, 2.2, 22),
+    new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.5 })
+  );
+  stagePlat.position.y = 1.1;
+  stagePlat.castShadow = true;
+  stagePlat.receiveShadow = true;
+  festivalStageGroup.add(stagePlat);
+
+  // Aluminum Truss Rigging Tower Arch
+  const stageTrussArch = new THREE.Mesh(
+    new THREE.BoxGeometry(36, 1.8, 2.2),
+    new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9 })
+  );
+  stageTrussArch.position.set(0, 15, 6);
+  festivalStageGroup.add(stageTrussArch);
+
+  // Giant Animated Pulsing LED Backdrop Screen
+  const festivalScreenMat = new THREE.MeshBasicMaterial({ color: 0xff0077 });
+  const ledScreen = new THREE.Mesh(new THREE.PlaneGeometry(32, 10.5), festivalScreenMat);
+  ledScreen.position.set(0, 7.8, -10.8);
+  festivalStageGroup.add(ledScreen);
+
+  // DJ Booth Decks
+  const djBooth = new THREE.Mesh(
+    new THREE.BoxGeometry(6, 1.4, 2),
+    new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x0099bb, emissiveIntensity: 0.8 })
+  );
+  djBooth.position.set(0, 2.8, -1);
+  festivalStageGroup.add(djBooth);
+
+  // Line-Array Speaker Stacks L & R
+  const speakerMat = new THREE.MeshStandardMaterial({ color: 0x090d14, roughness: 0.7 });
+  const spkL = new THREE.Mesh(new THREE.BoxGeometry(2.4, 8, 2.2), speakerMat);
+  spkL.position.set(-16, 8.5, 4);
+  const spkR = spkL.clone();
+  spkR.position.x = 16;
+  festivalStageGroup.add(spkL, spkR);
+
+  // Twin Skyward Laser Beams (searchlights cutting into the clouds)
+  const festivalLasers: THREE.Mesh[] = [];
+  const laserMatL = new THREE.MeshBasicMaterial({
+    color: 0x00f0ff,
+    transparent: true,
+    opacity: 0.45,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const laserMatR = new THREE.MeshBasicMaterial({
+    color: 0xff0066,
+    transparent: true,
+    opacity: 0.45,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const laserGeo = new THREE.CylinderGeometry(0.6, 6.0, 420, 16);
+  laserGeo.translate(0, 210, 0);
+
+  const laserBeamL = new THREE.Mesh(laserGeo, laserMatL);
+  laserBeamL.position.set(-12, 15, 6);
+  laserBeamL.rotation.z = 0.12;
+  const laserBeamR = new THREE.Mesh(laserGeo, laserMatR);
+  laserBeamR.position.set(12, 15, 6);
+  laserBeamR.rotation.z = -0.12;
+
+  festivalStageGroup.add(laserBeamL, laserBeamR);
+  festivalLasers.push(laserBeamL, laserBeamR);
+  scene.add(festivalStageGroup);
+
+  // -------------------------------------------------------------
+  // INTERACTIVE SMASHABLE HORIZON BONUS BOARDS (XP & FAST TRAVEL)
+  // -------------------------------------------------------------
+  const bonusBoards: BonusBoardRef[] = [];
+  const boardPostMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.85 });
+
+  const boardConfigs: Array<{
+    id: string;
+    name: string;
+    type: 'xp_1000' | 'xp_5000' | 'xp_10000' | 'fast_travel';
+    x: number;
+    z: number;
+    rewardCredits: number;
+    rewardXp: number;
+    bgColor: number;
+  }> = [
+    { id: 'board_xp5000_cliff', name: '5,000 XP Coastal Cliff Board', type: 'xp_5000', x: -268, z: -130, rewardCredits: 5000, rewardXp: 5000, bgColor: 0xff0066 },
+    { id: 'board_xp1000_vineyard', name: '1,000 XP Tuscan Vineyard Board', type: 'xp_1000', x: -150, z: 80, rewardCredits: 1000, rewardXp: 1000, bgColor: 0xffaa00 },
+    { id: 'board_xp5000_piazza', name: '5,000 XP Piazza Clock Tower Board', type: 'xp_5000', x: -125, z: -15, rewardCredits: 5000, rewardXp: 5000, bgColor: 0xff0066 },
+    { id: 'board_fasttravel_villa', name: 'Fast Travel 50% Bonus Board', type: 'fast_travel', x: -195, z: -45, rewardCredits: 7500, rewardXp: 7500, bgColor: 0x00f0ff },
+    { id: 'board_xp10000_mountain', name: '10,000 XP Mountain Hairpin Mega Board', type: 'xp_10000', x: -225, z: -190, rewardCredits: 10000, rewardXp: 10000, bgColor: 0x9900ff },
+    { id: 'board_xp5000_festival', name: '5,000 XP Festival Main Stage Board', type: 'xp_5000', x: 280, z: -345, rewardCredits: 5000, rewardXp: 5000, bgColor: 0xff0066 },
+  ];
+
+  boardConfigs.forEach((cfg) => {
+    const bGroup = new THREE.Group();
+    const groundY = getGroundElevation(cfg.x, cfg.z);
+    bGroup.position.set(cfg.x, groundY, cfg.z);
+
+    // Left and Right wooden stakes
+    const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 2.2, 8);
+    const postL = new THREE.Mesh(postGeo, boardPostMat);
+    postL.position.set(-1.1, 1.1, 0);
+    postL.castShadow = true;
+    const postR = postL.clone();
+    postR.position.x = 1.1;
+    bGroup.add(postL, postR);
+
+    // Main Branded Billboard
+    const panelGeo = new THREE.BoxGeometry(2.6, 1.3, 0.18);
+    const panelMat = new THREE.MeshStandardMaterial({
+      color: cfg.bgColor,
+      emissive: cfg.bgColor,
+      emissiveIntensity: 0.65,
+      roughness: 0.35,
+    });
+    const panelMesh = new THREE.Mesh(panelGeo, panelMat);
+    panelMesh.position.set(0, 1.5, 0);
+    panelMesh.castShadow = true;
+    bGroup.add(panelMesh);
+
+    // Exploding splinter debris pieces (initially hidden)
+    const debrisPieces: THREE.Mesh[] = [];
+    const debrisMat = new THREE.MeshStandardMaterial({ color: cfg.bgColor, roughness: 0.5 });
+    for (let i = 0; i < 8; i++) {
+      const piece = new THREE.Mesh(new THREE.BoxGeometry(0.35 + Math.random() * 0.3, 0.25 + Math.random() * 0.2, 0.15), debrisMat);
+      piece.position.set((Math.random() - 0.5) * 1.5, 1.5 + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.5);
+      piece.visible = false;
+      bGroup.add(piece);
+      debrisPieces.push(piece);
+    }
+
+    scene.add(bGroup);
+
+    bonusBoards.push({
+      id: cfg.id,
+      name: cfg.name,
+      type: cfg.type,
+      x: cfg.x,
+      y: groundY,
+      z: cfg.z,
+      rewardCredits: cfg.rewardCredits,
+      rewardXp: cfg.rewardXp,
+      group: bGroup,
+      panelMesh,
+      debrisPieces,
+      smashed: false,
+      smashTime: 0,
+    });
+  });
+
+  // -------------------------------------------------------------
+  // RADAR SPEED TRAP XENON CAMERA FLASHES
+  // -------------------------------------------------------------
+  const speedTrapFlashes: THREE.PointLight[] = [];
+  const flashLight1 = new THREE.PointLight(0xffffff, 0, 80, 2.0);
+  flashLight1.position.set(280, 9, 60);
+  scene.add(flashLight1);
+  speedTrapFlashes.push(flashLight1);
+
+  const flashLight2 = new THREE.PointLight(0xffffff, 0, 80, 2.0);
+  flashLight2.position.set(-260, 9, 80);
+  scene.add(flashLight2);
+  speedTrapFlashes.push(flashLight2);
+
   // 5. Luxury Yachts in the Riviera Coastline Bay (X < -340)
   const yachtMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
   const teakWoodMat = new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.7 });
@@ -603,6 +933,10 @@ export function buildOpenWorldMap(scene: THREE.Scene): WorldEnvironmentRefs {
     stuntJumpMarker,
     checkpointRings,
     repairBayZone,
+    bonusBoards,
+    festivalLasers,
+    festivalScreenMat,
+    speedTrapFlashes,
   };
 }
 
@@ -713,4 +1047,58 @@ export function updateWorldEnvironment(
   refs.checkpointRings.forEach((ringGroup, idx) => {
     ringGroup.rotation.y += (0.8 + idx * 0.1) * dt;
   });
+
+  // 3. Animate Horizon Festival Skyward Lasers
+  if (refs.festivalLasers && refs.festivalLasers.length >= 2) {
+    const time = Date.now() * 0.001;
+    refs.festivalLasers[0].rotation.z = Math.sin(time * 0.8) * 0.28;
+    refs.festivalLasers[0].rotation.x = Math.cos(time * 0.6) * 0.2;
+    refs.festivalLasers[1].rotation.z = -Math.sin(time * 0.8) * 0.28;
+    refs.festivalLasers[1].rotation.x = -Math.cos(time * 0.6) * 0.2;
+
+    // Laser visibility boosts at night or sunset
+    const laserAlpha = isNight ? 0.75 : isSunset ? 0.5 : 0.2;
+    (refs.festivalLasers[0].material as THREE.MeshBasicMaterial).opacity = laserAlpha;
+    (refs.festivalLasers[1].material as THREE.MeshBasicMaterial).opacity = laserAlpha;
+  }
+
+  // 4. Animate Festival Stage LED Visualizer Screen
+  if (refs.festivalScreenMat) {
+    const cycle = (Date.now() * 0.003) % (Math.PI * 2);
+    const r = Math.sin(cycle) * 0.5 + 0.5;
+    const g = Math.sin(cycle + 2.0) * 0.5 + 0.5;
+    const b = Math.sin(cycle + 4.0) * 0.5 + 0.5;
+    refs.festivalScreenMat.color.setRGB(r, g * 0.6, b);
+  }
+
+  // 5. Animate Smashed Bonus Board Debris
+  if (refs.bonusBoards) {
+    const now = Date.now();
+    refs.bonusBoards.forEach((board) => {
+      if (board.smashed && board.smashTime > 0) {
+        const elapsed = (now - board.smashTime) * 0.001;
+        if (elapsed < 3.0) {
+          board.debrisPieces.forEach((piece, idx) => {
+            piece.visible = true;
+            // Scatter outward and downward
+            const angle = (idx / board.debrisPieces.length) * Math.PI * 2;
+            piece.position.x += Math.cos(angle) * 4.0 * dt;
+            piece.position.z += Math.sin(angle) * 4.0 * dt;
+            piece.position.y += (2.5 - elapsed * 7.0) * dt;
+            piece.rotation.x += 4.0 * dt;
+            piece.rotation.y += 3.0 * dt;
+          });
+        }
+      }
+    });
+  }
+
+  // 6. Fade Out Speed Trap Xenon Flashes
+  if (refs.speedTrapFlashes) {
+    refs.speedTrapFlashes.forEach((flash) => {
+      if (flash.intensity > 0) {
+        flash.intensity = Math.max(0, flash.intensity - 18.0 * dt);
+      }
+    });
+  }
 }

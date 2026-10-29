@@ -63,22 +63,48 @@ export interface VehicleDamage {
   deformationFactor: number; // 0 to 1 visual mesh deformation
 }
 
-export type GraphicsPreset = 'ultra' | 'high' | 'medium' | 'low';
+export type GraphicsPreset = 'ultra' | 'high' | 'medium' | 'low' | 'performance';
+export type ToneMappingType = 'aces_filmic' | 'reinhard' | 'cineon' | 'neutral';
 
 export interface GraphicsSettings {
   preset: GraphicsPreset;
   rayTracingReflections: boolean; // Screen-space / planar ground reflection simulation
   globalIllumination: boolean; // Dynamic GI contact shadows & bounce
-  shadowMapRes: 512 | 1024 | 2048 | 0; // 0 means off
+  shadowMapRes: 4096 | 2048 | 1024 | 512 | 0; // 0 means off
   renderScale: number; // 0.5 to 1.5
   bloom: boolean;
   motionBlur: boolean;
+  speedLines: boolean;
   rainDroplets: boolean;
   vignette: boolean;
-  drawDistance: number; // 200m to 1200m
-  targetFps: 30 | 60 | 0; // 0 means uncapped
+  drawDistance: number; // 200m to 1400m
+  targetFps: 30 | 60 | 120 | 144 | 0; // 0 means uncapped
   antiAliasing: boolean;
+  toneMapping: ToneMappingType;
+  volumetricGodRays: boolean;
+  fov: number; // 50 to 105
+  particleDensity: 'low' | 'medium' | 'high' | 'ultra';
   backend: 'WebGL 2.0 (High-PBR)' | 'WebGL 1.0 (Low-Power)';
+}
+
+export interface BonusBoard {
+  id: string;
+  type: 'xp_1000' | 'xp_5000' | 'xp_10000' | 'fast_travel';
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  rewardCredits: number;
+  rewardXp: number;
+  smashed: boolean;
+}
+
+export interface Custom3DModelConfig {
+  enabled: boolean;
+  modelUrl: string;
+  modelName: string;
+  scale: number;
+  yOffset: number;
 }
 
 export interface ControlBindings {
@@ -143,6 +169,8 @@ export interface UserProfile {
   customizations: Record<VehicleId, VehicleCustomization>;
   upgrades: Record<VehicleId, VehicleUpgrades>;
   challengeScores: Record<string, number>;
+  smashedBoards: string[]; // list of smashed bonus board IDs
+  custom3dModel?: Custom3DModelConfig;
   tutorialStep: TutorialStep;
   tutorialCompleted: boolean;
   lastSavedAt: number;
@@ -171,4 +199,6 @@ export interface GameTelemetry {
   currentZoneName: string;
   gamepadConnected: boolean;
   gamepadName: string;
+  recentBoardSmashed?: { name: string; rewardCredits: number } | null;
+  speedTrapFlash?: { speedKmh: number; rewardCredits: number } | null;
 }

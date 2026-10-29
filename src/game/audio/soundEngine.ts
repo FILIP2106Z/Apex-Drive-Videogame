@@ -255,6 +255,26 @@ class SoundEngine {
     // Managed via state if needed
   }
 
+  public playDriftScoreChime() {
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    try {
+      const t = this.ctx.currentTime;
+      const notes = [659.25, 830.61, 987.77, 1318.51]; // E Major chime
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const g = this.ctx!.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t + idx * 0.05);
+        g.gain.setValueAtTime(0.12, t + idx * 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.05 + 0.35);
+        osc.connect(g);
+        g.connect(this.masterGain!);
+        osc.start(t + idx * 0.05);
+        osc.stop(t + idx * 0.05 + 0.38);
+      });
+    } catch {}
+  }
+
   public playRepairSound() {
     if (!this.ctx || !this.masterGain || this.isMuted) return;
     try {

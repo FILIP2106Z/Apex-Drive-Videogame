@@ -240,6 +240,42 @@ export const GameHud: React.FC<GameHudProps> = ({
         </div>
       </div>
 
+      {/* FULLSCREEN SPEED CAMERA FLASH OVERLAY */}
+      {telemetry.speedTrapFlash && (
+        <div className="fixed inset-0 z-50 pointer-events-none bg-white/70 animate-pulse transition-opacity duration-200" />
+      )}
+
+      {/* CENTER HUD NOTIFICATIONS: BONUS BOARD SMASH & SPEED TRAP */}
+      <div className="self-center flex flex-col items-center gap-2 pointer-events-none -mt-12">
+        {telemetry.recentBoardSmashed && (
+          <div className="bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 text-white font-black px-6 py-2.5 rounded-xl shadow-2xl border-2 border-white/80 animate-bounce tracking-wide text-center">
+            <div className="text-[11px] font-mono uppercase tracking-widest text-amber-200">
+              💥 FORZA HORIZON 2 BONUS BOARD SMASHED!
+            </div>
+            <div className="text-lg uppercase drop-shadow-md">
+              {telemetry.recentBoardSmashed.name}
+            </div>
+            <div className="text-xs font-mono text-emerald-200 font-bold">
+              +${telemetry.recentBoardSmashed.rewardCredits.toLocaleString()} CREDITS AWARDED
+            </div>
+          </div>
+        )}
+
+        {telemetry.speedTrapFlash && (
+          <div className="bg-gradient-to-r from-cyan-600 to-blue-700 text-white font-black px-6 py-2.5 rounded-xl shadow-2xl border-2 border-cyan-300 tracking-wide text-center">
+            <div className="text-[11px] font-mono uppercase tracking-widest text-cyan-200">
+              📸 SPEED TRAP RADAR FLASH!
+            </div>
+            <div className="text-2xl font-black italic text-yellow-300 drop-shadow">
+              {telemetry.speedTrapFlash.speedKmh} KM/H
+            </div>
+            <div className="text-xs font-mono text-emerald-200 font-bold">
+              +${telemetry.speedTrapFlash.rewardCredits.toLocaleString()} SPEED RECORD BONUS
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* TUTORIAL LESSON BANNER (IF ACTIVE) */}
       {tutorialActive && currentLesson && (
         <div className="self-center pointer-events-auto bg-slate-950/90 border border-cyan-500/50 p-4 rounded-lg max-w-lg shadow-xl shadow-cyan-950/40">

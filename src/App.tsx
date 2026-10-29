@@ -42,6 +42,7 @@ import {
   updateVehicleModelVisuals,
   VehicleMeshRefs,
 } from './game/world/vehicleModels';
+import { loadGltfVehicle } from './game/models/carModelLoader';
 import { TrafficManager } from './game/traffic/trafficSystem';
 import { soundEngine } from './game/audio/soundEngine';
 import { InputManager } from './game/input/inputManager';
@@ -363,6 +364,9 @@ export default function App() {
     let frameId = 0;
     let lastTime = performance.now();
     let titleCamAngle = 0;
+    let lastSpeedTrapTriggerTime = 0;
+    let activeVehicleKey: string = profileRef.current.currentVehicleId;
+    let isLoadingModel = false;
 
     // Software WebGL Pace Guard
     function afterDraw(cb: () => void) {
@@ -388,15 +392,54 @@ export default function App() {
       lastTime = now;
       const dt = Math.min(rawDt, 0.05);
 
-      // Check if vehicle model changed in profile
-      if (profileRef.current.currentVehicleId !== activeVehicleId) {
-        scene.remove(vehicleMeshRefs.group);
+      // Check if vehicle model or custom 3D model changed in profile
+      const isCustomModel = !!(profileRef.current.custom3dModel?.enabled && profileRef.current.custom3dModel.modelUrl);
+      const currentModelKey = isCustomModel ? profileRef.current.custom3dModel!.modelUrl : profileRef.current.currentVehicleId;
+
+      if (currentModelKey !== activeVehicleKey && !isLoadingModel) {
+        activeVehicleKey = currentModelKey;
         activeVehicleId = profileRef.current.currentVehicleId;
-        vehicleMeshRefs = createProceduralVehicle(
-          activeVehicleId,
-          profileRef.current.customizations[activeVehicleId]
-        );
-        scene.add(vehicleMeshRefs.group);
+
+        if (isCustomModel) {
+          isLoadingModel = true;
+          loadGltfVehicle(
+            profileRef.current.custom3dModel!.modelUrl,
+            profileRef.current.customizations[activeVehicleId],
+            profileRef.current.custom3dModel!.scale,
+            profileRef.current.custom3dModel!.yOffset
+          ).then((newRefs) => {
+            scene.remove(vehicleMeshRefs.group);
+            vehicleMeshRefs = newRefs;
+            scene.add(vehicleMeshRefs.group);
+            isLoadingModel = false;
+          }).catch((e) => {
+            console.warn('Failed to load custom GLB model, falling back to procedural:', e);
+            isLoadingModel = false;
+            scene.remove(vehicleMeshRefs.group);
+            vehicleMeshRefs = createProceduralVehicle(activeVehicleId, profileRef.current.customizations[activeVehicleId]);
+            scene.add(vehicleMeshRefs.group);
+          });
+        } else {
+          scene.remove(vehicleMeshRefs.group);
+          vehicleMeshRefs = createProceduralVehicle(
+            activeVehicleId,
+            profileRef.current.customizations[activeVehicleId]
+          );
+          scene.add(vehicleMeshRefs.group);
+        }
+      }
+
+      // Dynamic Graphics Sync (FOV & Tone Mapping)
+      if (Math.abs(camera.fov - graphicsRef.current.fov) > 0.1) {
+        camera.fov = graphicsRef.current.fov;
+        camera.updateProjectionMatrix();
+      }
+      if (graphicsRef.current.toneMapping === 'aces_filmic' && renderer.toneMapping !== THREE.ACESFilmicToneMapping) {
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      } else if (graphicsRef.current.toneMapping === 'reinhard' && renderer.toneMapping !== THREE.ReinhardToneMapping) {
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+      } else if (graphicsRef.current.toneMapping === 'neutral' && renderer.toneMapping !== THREE.NoToneMapping) {
+        renderer.toneMapping = THREE.NoToneMapping;
       }
 
       const currentSpec = VEHICLE_DATABASE[activeVehicleId];
@@ -534,19 +577,68 @@ export default function App() {
           }
         }
 
-        // Speed Trap Highway Check (X: 280, Z: 60)
-        const distToSpeedTrap = Math.hypot(physicsStateRef.current.x - 280, physicsStateRef.current.z - 60);
-        if (distToSpeedTrap < 10 && Math.abs(physicsStateRef.current.speedMs * 3.6) > 180) {
-          const speedRecord = Math.round(Math.abs(physicsStateRef.current.speedMs * 3.6));
-          if (speedRecord > (profileRef.current.challengeScores.highway_speed_trap || 0)) {
+        // Interactive Forza Horizon 2 Bonus Boards Collision Check
+        if (worldRefs.bonusBoards) {
+          worldRefs.bonusBoards.forEach((board) => {
+            if (!board.smashed && !(profileRef.current.smashedBoards || []).includes(board.id)) {
+              const dist = Math.hypot(physicsStateRef.current.x - board.x, physicsStateRef.current.z - board.z);
+              if (dist < 3.2) {
+                board.smashed = true;
+                board.smashTime = Date.now();
+                board.panelMesh.visible = false;
+                soundEngine.playDriftScoreChime();
+                confetti({ particleCount: 65, spread: 80 });
+                const updatedBoards = [...(profileRef.current.smashedBoards || []), board.id];
+                setProfile((prev) => ({
+                  ...prev,
+                  credits: prev.credits + board.rewardCredits,
+                  smashedBoards: updatedBoards,
+                }));
+                setTelemetry((prev) => ({
+                  ...prev,
+                  recentBoardSmashed: { name: board.name, rewardCredits: board.rewardCredits },
+                }));
+                setTimeout(() => {
+                  setTelemetry((prev) => ({ ...prev, recentBoardSmashed: null }));
+                }, 4000);
+              }
+            }
+          });
+        }
+
+        // Radar Speed Trap Cameras (Highway X: 280, Z: 60 and Riviera Coast X: -260, Z: 80)
+        const currentSpeedKmh = Math.abs(physicsStateRef.current.speedMs * 3.6);
+        const speedTraps = [
+          { x: 280, z: 60, id: 'highway_speed_trap', flashIdx: 0 },
+          { x: -260, z: 80, id: 'coastal_speed_trap', flashIdx: 1 },
+        ];
+        speedTraps.forEach((trap) => {
+          const dist = Math.hypot(physicsStateRef.current.x - trap.x, physicsStateRef.current.z - trap.z);
+          if (dist < 8.0 && currentSpeedKmh > 100 && (now - lastSpeedTrapTriggerTime) > 6000) {
+            lastSpeedTrapTriggerTime = now;
+            if (worldRefs.speedTrapFlashes && worldRefs.speedTrapFlashes[trap.flashIdx]) {
+              worldRefs.speedTrapFlashes[trap.flashIdx].intensity = 25.0;
+            }
+            const speedRecord = Math.round(currentSpeedKmh);
+            const reward = Math.round(speedRecord * 12);
             setProfile((prev) => ({
               ...prev,
-              challengeScores: { ...prev.challengeScores, highway_speed_trap: speedRecord },
-              credits: prev.credits + 15000,
+              credits: prev.credits + reward,
+              challengeScores: {
+                ...prev.challengeScores,
+                [trap.id]: Math.max(speedRecord, prev.challengeScores[trap.id] || 0),
+              },
             }));
-            confetti({ particleCount: 50, spread: 70 });
+            confetti({ particleCount: 45, spread: 65 });
+            setTelemetry((prev) => ({
+              ...prev,
+              speedTrapFlash: { speedKmh: speedRecord, rewardCredits: reward },
+            }));
+            setTimeout(() => {
+              setTelemetry((prev) => ({ ...prev, speedTrapFlash: null }));
+            }, 3000);
           }
-        }
+        });
       }
 
       // Update Vehicle 3D Model position & rotation

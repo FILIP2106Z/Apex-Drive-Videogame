@@ -29,11 +29,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install dependencies & Build Web Bundle
         run: |
-          npm ci
+          npm install --legacy-peer-deps --no-audit
           npm run build
 
       - name: Package Linux AppImage with Vulkan & GameMode Flags
@@ -106,7 +105,7 @@ jobs:
 
       - name: Install dependencies & Build
         run: |
-          npm ci
+          npm install --legacy-peer-deps --no-audit
           npm run build
 
       - name: Package Windows DirectX 12 ANGLE Release
@@ -136,7 +135,7 @@ jobs:
 
       - name: Install dependencies & Build
         run: |
-          npm ci
+          npm install --legacy-peer-deps --no-audit
           npm run build
 
       - name: Create macOS Universal Disk Image (.dmg)
@@ -172,7 +171,7 @@ jobs:
 
       - name: Install dependencies & Build
         run: |
-          npm ci
+          npm install --legacy-peer-deps --no-audit
           npm run build
 
       - name: Package Android Release Artifacts
@@ -202,7 +201,7 @@ jobs:
 
       - name: Install dependencies & Build
         run: |
-          npm ci
+          npm install --legacy-peer-deps --no-audit
           npm run build
 
       - name: Package iOS IPA Archive
