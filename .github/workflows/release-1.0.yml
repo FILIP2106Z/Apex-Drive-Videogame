@@ -17,7 +17,7 @@ permissions:
   packages: write
 
 jobs:
-  # 1. LINUX BUILD: AppImage & Flatpak
+  # 1. LINUX BUILD: Web Bundle
   build-linux:
     name: Build Linux (AppImage & Flatpak)
     runs-on: ubuntu-22.04
@@ -35,16 +35,10 @@ jobs:
           npm install --legacy-peer-deps --no-audit
           npm run build
 
-      - name: Package Linux Artifacts
+      - name: Package Linux Bundle
         run: |
           mkdir -p dist-native/linux
-          # Pakujemy zawartość folderu dist jako gotowe archiwum tar.gz z właściwą zawartością
-          if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
-            tar -czf dist-native/linux/ApexHorizon-v1.0.0-linux-x86_64.tar.gz -C dist .
-          else
-            echo "Error: dist folder is empty!"
-            exit 1
-          fi
+          tar -czf dist-native/linux/ApexHorizon-v1.0.0-linux-x86_64.tar.gz -C dist .
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -52,9 +46,9 @@ jobs:
           name: linux-v1.0.0
           path: dist-native/linux/*.tar.gz
 
-  # 2. ANDROID BUILD: APK & AAB
+  # 2. ANDROID BUILD: True Native APK via Gradle / Capacitor
   build-android:
-    name: Build Android (APK & AAB)
+    name: Build Android (APK)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -71,25 +65,29 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies & Build
+      - name: Install dependencies & Build Web Project
         run: |
           npm install --legacy-peer-deps --no-audit
           npm run build
 
-      - name: Package Android APK Release
+      - name: Build Native Android APK
         run: |
           mkdir -p dist-native/android
           
-          # Szukamy fizycznego pliku APK w repozytorium (jeśli projekt go generuje, np. w build/outputs lub dist)
-          # Jeśli go nie ma, pakujemy webbundle/pwa jako zip z rozszerzeniem .zip (lub sprawdzamy czy istnieje plik apk)
-          if find . -name "*.apk" -print -quit | grep -q .; then
-            find . -name "*.apk" -exec cp {} dist-native/android/ApexHorizon-v1.0.0-Release.apk \;
-          elif [ -d "dist" ] && [ "$(ls -A dist)" ]; then
-            # Tworzymy stabilną paczkę zip z aplikacją webową dla Androida
-            zip -r dist-native/android/ApexHorizon-v1.0.0-Android-PWA.zip dist/*
+          # Jeśli w repozytorium znajduje się folder 'android' (Capacitor / Cordova / React Native)
+          if [ -d "android" ]; then
+            echo "Znaleziono katalog android! Synchronizacja i budowanie Gradle..."
+            npx cap sync android || true
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleRelease
+            cd ..
+            
+            # Kopiowanie wygenerowanego pliku APK z Gradle (zwykle waży od kilkunastu do kilkudziesięciu MB)
+            find android/app/build/outputs/apk/ -name "*.apk" -exec cp {} dist-native/android/ApexHorizon-v1.0.0-Release.apk \;
           else
-            echo "Error: No build outputs found for Android!"
-            exit 1
+            echo "Brak natywnego folderu android - pakowanie PWA Web Bundle jako fallback"
+            zip -r dist-native/android/ApexHorizon-v1.0.0-Android-PWA.zip dist/*
           fi
 
       - name: Upload Android Artifacts
@@ -98,7 +96,7 @@ jobs:
           name: android-v1.0.0
           path: dist-native/android/*
 
-  # 3. CREATE GITHUB RELEASE 1.0.0 WITH BINARIES
+  # 3. CREATE GITHUB RELEASE
   create-release:
     name: Publish GitHub Release v1.0.0
     needs: [build-linux, build-android]
@@ -112,10 +110,8 @@ jobs:
       - name: Generate Release Notes & Checksums
         run: |
           mkdir -p final-binaries/
-          # Kopiujemy płasko wszystkie pliki z podkatalogów artefaktów do folderu finalnego
           find release-assets/ -type f -exec cp {} final-binaries/ \;
           cd final-binaries/
-          ls -la
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -129,12 +125,8 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            ## Apex Horizon v1.0.0 - Grand Debut Release
+            ## Apex Horizon v1.0.0 - Official Release
 
-            Welcome to the official 1.0.0 release of **Apex Horizon**, the open-world driving simulator!
-
-            ### What's New in 1.0.0:
-            - **Forza Horizon 2 Inspired Map**: Mediterranean coastal highways, Italian Tuscan hillside villas, and mountain tunnels.
-            - **Cross-Platform Compilation**: Native builds for Linux and Android.
+            Official cross-platform release builds for Linux and Android.
           files: |
             final-binaries/*
