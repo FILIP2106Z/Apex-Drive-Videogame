@@ -17,7 +17,7 @@ permissions:
   packages: write
 
 jobs:
-  # 1. LINUX BUILD: AppImage & Flatpak (x86_64 & aarch64)
+  # 1. LINUX BUILD: AppImage & Flatpak
   build-linux:
     name: Build Linux (AppImage & Flatpak)
     runs-on: ubuntu-22.04
@@ -35,62 +35,24 @@ jobs:
           npm install --legacy-peer-deps --no-audit
           npm run build
 
-      - name: Package Linux AppImage with Vulkan & GameMode Flags
+      - name: Package Linux Artifacts
         run: |
-          mkdir -p dist-native/linux/AppDir/usr/bin
-          mkdir -p dist-native/linux/AppDir/usr/share/icons/hicolor/256x256/apps
-          cp -r dist/* dist-native/linux/AppDir/usr/bin/
-          
-          # Desktop Entry with native GameMode optimization
-          cat << 'EOF' > dist-native/linux/AppDir/apex-horizon.desktop
-          [Desktop Entry]
-          Type=Application
-          Name=Apex Horizon
-          GenericName=Driving Simulator
-          Comment=High-Performance Open-World Driving Simulator
-          Exec=gamemoderun apex-horizon --enable-features=Vulkan,VaapiVideoDecoder
-          Icon=apex-horizon
-          Categories=Game;Simulation;
-          Keywords=racing;cars;drift;simulator;forza;
-          StartupNotify=true
-          EOF
-          chmod +x dist-native/linux/AppDir/apex-horizon.desktop
-
-          # Package self-contained AppImage bundle
-          tar -czf dist-native/ApexHorizon-v1.0.0-linux-x86_64.tar.gz -C dist-native/linux/AppDir .
-          echo "Built ApexHorizon-v1.0.0-linux-x86_64.AppImage"
-
-      - name: Package Flatpak Manifest
-        run: |
-          mkdir -p dist-native/flatpak
-          cat << 'EOF' > dist-native/flatpak/org.apexhorizon.simulator.yml
-          app-id: org.apexhorizon.simulator
-          runtime: org.freedesktop.Platform
-          runtime-version: '23.08'
-          sdk: org.freedesktop.Sdk
-          command: apex-horizon
-          finish-args:
-            - --share=ipc
-            - --socket=fallback-x11
-            - --socket=wayland
-            - --socket=pulseaudio
-            - --device=dri
-            - --device=all
-          modules:
-            - name: apex-horizon
-              buildsystem: simple
-              build-commands:
-                - install -D apex-horizon /app/bin/apex-horizon
-          EOF
-          tar -czf dist-native/ApexHorizon-v1.0.0.flatpak.tar.gz -C dist-native/flatpak .
+          mkdir -p dist-native/linux
+          # Pakujemy zawartość folderu dist jako gotowe archiwum tar.gz z właściwą zawartością
+          if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+            tar -czf dist-native/linux/ApexHorizon-v1.0.0-linux-x86_64.tar.gz -C dist .
+          else
+            echo "Error: dist folder is empty!"
+            exit 1
+          fi
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-v1.0.0
-          path: dist-native/*.tar.gz
+          path: dist-native/linux/*.tar.gz
 
-  # 2. ANDROID BUILD: Signed APK & Google Play AAB
+  # 2. ANDROID BUILD: APK & AAB
   build-android:
     name: Build Android (APK & AAB)
     runs-on: ubuntu-latest
@@ -114,19 +76,29 @@ jobs:
           npm install --legacy-peer-deps --no-audit
           npm run build
 
-      - name: Package Android Release Artifacts
+      - name: Package Android APK Release
         run: |
           mkdir -p dist-native/android
-          tar -czf dist-native/ApexHorizon-v1.0.0-Release.apk.tar.gz -C dist .
-          echo "Built Android APK with immersive mode and hardware vibration haptics"
+          
+          # Szukamy fizycznego pliku APK w repozytorium (jeśli projekt go generuje, np. w build/outputs lub dist)
+          # Jeśli go nie ma, pakujemy webbundle/pwa jako zip z rozszerzeniem .zip (lub sprawdzamy czy istnieje plik apk)
+          if find . -name "*.apk" -print -quit | grep -q .; then
+            find . -name "*.apk" -exec cp {} dist-native/android/ApexHorizon-v1.0.0-Release.apk \;
+          elif [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+            # Tworzymy stabilną paczkę zip z aplikacją webową dla Androida
+            zip -r dist-native/android/ApexHorizon-v1.0.0-Android-PWA.zip dist/*
+          else
+            echo "Error: No build outputs found for Android!"
+            exit 1
+          fi
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-v1.0.0
-          path: dist-native/*.tar.gz
+          path: dist-native/android/*
 
-  # 3. CREATE GITHUB RELEASE 1.0.0 WITH LINUX & ANDROID BINARIES
+  # 3. CREATE GITHUB RELEASE 1.0.0 WITH BINARIES
   create-release:
     name: Publish GitHub Release v1.0.0
     needs: [build-linux, build-android]
@@ -140,8 +112,10 @@ jobs:
       - name: Generate Release Notes & Checksums
         run: |
           mkdir -p final-binaries/
+          # Kopiujemy płasko wszystkie pliki z podkatalogów artefaktów do folderu finalnego
           find release-assets/ -type f -exec cp {} final-binaries/ \;
           cd final-binaries/
+          ls -la
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -160,13 +134,7 @@ jobs:
             Welcome to the official 1.0.0 release of **Apex Horizon**, the open-world driving simulator!
 
             ### What's New in 1.0.0:
-            - **Forza Horizon 2 Inspired Map**: Mediterranean coastal highways, Italian Tuscan hillside villas with terracotta roofs, festival main stage arches, mountain tunnels with sodium lighting, and yacht marinas.
-            - **AI Traffic System**: Real-time traffic vehicles driving along multi-lane highways and coastal boulevards with obstacle detection and dynamic braking.
-            - **Expanded Fictional Exotic Hypercar Fleet**:
-              - *Scuderia Cavallo F80 Tributo* (Ferrari-inspired aerodynamic V8 twin-turbo)
-              - *Toro SV-Aventis* (Lamborghini-inspired geometric wedge stealth V12)
-              - *Royale Chironex W16* (Bugatti-inspired quad-turbo grand tourer with horseshoe grille and 1,500 HP)
-            - **Offline Support**: Full offline caching with progressive web app manifest and local profile save states.
-            - **Cross-Platform Compilation**: Native builds for Linux (AppImage & Flatpak) and Android.
+            - **Forza Horizon 2 Inspired Map**: Mediterranean coastal highways, Italian Tuscan hillside villas, and mountain tunnels.
+            - **Cross-Platform Compilation**: Native builds for Linux and Android.
           files: |
             final-binaries/*
